@@ -1,6 +1,6 @@
 {
   "name": "@hapo-congbv/zalo-zns-nestjs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Zalo Notification Service (ZNS) NestJS module for sending notifications via Zalo ZNS API",
   "author": "hapo-congbv",
   "license": "MIT",
