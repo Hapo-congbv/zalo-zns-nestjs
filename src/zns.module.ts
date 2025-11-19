@@ -29,8 +29,15 @@ export class ZnsModule {
       providers.push({
         provide: ZNS_OAUTH_OPTIONS,
         useFactory: async (...args: any[]) => {
-          const moduleOptions = await options.useFactory!(...args);
-          return moduleOptions?.oauthOptions;
+          const result = options.useFactory!(...args);
+          const moduleOptions = result instanceof Promise ? await result : result;
+          const oauthOptions = moduleOptions?.oauthOptions;
+          console.log('ZNS_OAUTH_OPTIONS factory - moduleOptions:', {
+            hasModuleOptions: !!moduleOptions,
+            hasOauthOptions: !!oauthOptions,
+            oauthOptionsType: typeof oauthOptions,
+          });
+          return oauthOptions;
         },
         inject: options.inject || [],
       });
@@ -64,11 +71,24 @@ export class ZnsModule {
     providers.push(PkceService);
     providers.push({
       provide: ZaloAuthService,
-      useFactory: (oauthOptions: any, tokenStorage: TokenStorage, pkceService: PkceService) => {
-        if (!oauthOptions) {
+      useFactory: async (
+        oauthOptions: any,
+        tokenStorage: TokenStorage,
+        pkceService: PkceService,
+      ) => {
+        // Handle both sync and async oauthOptions
+        const resolvedOauthOptions =
+          oauthOptions instanceof Promise ? await oauthOptions : oauthOptions;
+        console.log('ZaloAuthService factory - oauthOptions:', {
+          isNull: resolvedOauthOptions === null,
+          isUndefined: resolvedOauthOptions === undefined,
+          hasValue: !!resolvedOauthOptions,
+          type: typeof resolvedOauthOptions,
+        });
+        if (!resolvedOauthOptions) {
           return null; // Return null if OAuth not configured
         }
-        return new ZaloAuthService(oauthOptions, tokenStorage, pkceService);
+        return new ZaloAuthService(resolvedOauthOptions, tokenStorage, pkceService);
       },
       inject: [ZNS_OAUTH_OPTIONS, ZNS_TOKEN_STORAGE, PkceService],
     });
