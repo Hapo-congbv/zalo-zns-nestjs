@@ -9,12 +9,18 @@ import {
   Logger,
   Optional,
   BadRequestException,
+  SetMetadata,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ZaloAuthService } from '../services/zalo-auth.service';
 import { PkceService } from '../services/pkce.service';
 
+// Public decorator to mark endpoints as public (bypass JWT auth)
+const IS_PUBLIC_KEY = 'isPublic';
+const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+
 @Controller('zalo/oauth')
+@Public() // Mark entire controller as public
 export class ZaloOAuthController {
   private readonly logger = new Logger(ZaloOAuthController.name);
   private readonly codeVerifierStore: Map<string, string> = new Map();
