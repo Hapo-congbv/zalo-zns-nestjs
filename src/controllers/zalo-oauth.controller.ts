@@ -49,6 +49,7 @@ export class ZaloOAuthController {
    * @param state Optional state parameter
    * @returns Authorization URL
    */
+  @Public()
   @Get('authorize')
   getAuthorizationUrl(@Query('state') state?: string) {
     this.checkAuthService();
@@ -81,6 +82,7 @@ export class ZaloOAuthController {
    * @param state State parameter for verification
    * @param res Express response object
    */
+  @Public()
   @Get('callback')
   async handleCallback(
     @Query('code') code: string,
@@ -134,6 +136,7 @@ export class ZaloOAuthController {
    * @param body Optional refresh token
    * @returns New token data
    */
+  @Public()
   @Post('refresh')
   async refreshToken(@Body('refreshToken') refreshToken?: string) {
     this.checkAuthService();
@@ -161,6 +164,7 @@ export class ZaloOAuthController {
    * GET /zalo/oauth/token-status
    * @returns Token status information
    */
+  @Public()
   @Get('token-status')
   async getTokenStatus() {
     this.checkAuthService();
@@ -187,6 +191,7 @@ export class ZaloOAuthController {
    * GET /zalo/oauth/pkce
    * @returns PKCE code pair
    */
+  @Public()
   @Get('pkce')
   generatePkce() {
     try {
