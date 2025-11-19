@@ -1,0 +1,72 @@
+{
+  "types": [
+    {
+      "type": "feat",
+      "section": "Features"
+    },
+    {
+      "type": "fix",
+      "section": "Bug Fixes"
+    },
+    {
+      "type": "hot_fix",
+      "section": "Hot Fixes"
+    },
+    {
+      "type": "perf",
+      "section": "Performance Improvements"
+    },
+    {
+      "type": "revert",
+      "section": "Reverts"
+    },
+    {
+      "type": "docs",
+      "section": "Documentation",
+      "hidden": false
+    },
+    {
+      "type": "style",
+      "section": "Styles",
+      "hidden": true
+    },
+    {
+      "type": "chore",
+      "section": "Miscellaneous Chores",
+      "hidden": true
+    },
+    {
+      "type": "refactor",
+      "section": "Code Refactoring",
+      "hidden": false
+    },
+    {
+      "type": "test",
+      "section": "Tests",
+      "hidden": true
+    },
+    {
+      "type": "build",
+      "section": "Build System",
+      "hidden": true
+    },
+    {
+      "type": "ci",
+      "section": "Continuous Integration",
+      "hidden": true
+    }
+  ],
+  "releaseCommitMessageFormat": "chore(release): {{currentTag}}",
+  "skip": {
+    "tag": false,
+    "commit": false,
+    "bump": false
+  },
+  "compareUrlFormat": "https://github.com/{{owner}}/{{repository}}/compare/{{previousTag}}...{{currentTag}}",
+  "commitUrlFormat": "https://github.com/{{owner}}/{{repository}}/commit/{{hash}}",
+  "issueUrlFormat": "https://github.com/{{owner}}/{{repository}}/issues/{{id}}",
+  "userUrlFormat": "https://github.com/{{user}}",
+  "header": "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\nSee [Conventional Commits](https://conventionalcommits.org) for commit guidelines.",
+  "packageFiles": ["package.json"],
+  "bumpFiles": ["package.json"]
+}

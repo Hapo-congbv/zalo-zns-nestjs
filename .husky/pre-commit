@@ -1,0 +1,12 @@
+# Run lint-staged to check and fix staged files
+npm run lint:staged
+
+# Run lint on all files to ensure code quality
+npm run lint
+
+# Build package to ensure it compiles
+npm run build
+
+# Run full test suite before commit
+npm test
+

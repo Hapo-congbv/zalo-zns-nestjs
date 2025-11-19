@@ -1,22 +1,36 @@
-# haposoft zalo-zns-nestjs
-
-Zalo Notification Service (ZNS) NestJS module for sending notifications via Zalo ZNS API.
-
-> **Note**: Publish public packages lên npm hoàn toàn **miễn phí**. Package này là public package nên không có chi phí.
+# Usage Guide for @haposoft/zalo-zns-nestjs
 
 ## Installation
+
+### Method 1: Install from npm (after publishing)
 
 ```bash
 npm install @haposoft/zalo-zns-nestjs
 ```
 
-or
+### Method 2: Use npm link (development)
 
 ```bash
-yarn add @haposoft/zalo-zns-nestjs
+# In the zalo-zns-nestjs directory
+npm link
+
+# In the project where you want to use it
+npm link @haposoft/zalo-zns-nestjs
 ```
 
-## Quick Start
+### Method 3: Use from local path
+
+In your project's `package.json`:
+
+```json
+{
+  "dependencies": {
+    "@haposoft/zalo-zns-nestjs": "file:../zalo-zns-nestjs"
+  }
+}
+```
+
+## Usage in NestJS Application
 
 ### 1. Import Module
 
@@ -30,7 +44,7 @@ import { ZnsModule } from '@haposoft/zalo-zns-nestjs';
   imports: [
     ZnsModule.forRoot({
       accessToken: 'your-zalo-access-token',
-      apiUrl: 'https://business.openapi.zalo.me', // Optional, default value
+      apiUrl: 'https://business.openapi.zalo.me', // Optional
       timeout: 30000, // Optional, default 30000ms
     }),
   ],
@@ -64,7 +78,7 @@ export class AppModule {}
 
 #### Global Module
 
-If you want to use ZnsService globally without importing ZnsModule in every module:
+If you want to use ZnsService everywhere without importing ZnsModule:
 
 ```typescript
 // Synchronous
@@ -86,8 +100,7 @@ ZnsModule.forRootAsyncGlobal({
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { ZnsService } from '@haposoft/zalo-zns-nestjs';
-import { ZnsMessage } from '@haposoft/zalo-zns-nestjs';
+import { ZnsService, ZnsMessage } from '@haposoft/zalo-zns-nestjs';
 
 @Injectable()
 export class NotificationService {
@@ -133,72 +146,9 @@ export class NotificationService {
 }
 ```
 
-## API Reference
-
-### ZnsModule
-
-#### `forRoot(options: ZnsModuleOptions)`
-
-Register ZNS module with synchronous options.
-
-#### `forRootAsync(options: ZnsAsyncOptions)`
-
-Register ZNS module with asynchronous options.
-
-#### `forRootGlobal(options: ZnsModuleOptions)`
-
-Register ZNS module as global with synchronous options.
-
-#### `forRootAsyncGlobal(options: ZnsAsyncOptions)`
-
-Register ZNS module as global with asynchronous options.
-
-### ZnsService
-
-#### `sendMessage(message: ZnsMessage): Promise<ZnsSendResponse>`
-
-Send a single ZNS notification.
-
-#### `sendBulkMessages(messages: ZnsMessage[]): Promise<ZnsSendResponse[]>`
-
-Send multiple ZNS notifications.
-
-### Interfaces
-
-#### `ZnsModuleOptions`
-
-```typescript
-interface ZnsModuleOptions {
-  accessToken: string; // Required: Zalo access token
-  apiUrl?: string; // Optional: API URL (default: 'https://business.openapi.zalo.me')
-  timeout?: number; // Optional: Request timeout in ms (default: 30000)
-}
-```
-
-#### `ZnsMessage`
-
-```typescript
-interface ZnsMessage {
-  phone: string; // Required: Phone number
-  templateId: string; // Required: ZNS template ID
-  templateData?: Record<string, any>; // Optional: Template data
-  trackingId?: string; // Optional: Tracking ID
-}
-```
-
-#### `ZnsSendResponse`
-
-```typescript
-interface ZnsSendResponse {
-  error: number; // 0 = success, non-zero = error
-  message: string; // Response message
-  data?: {
-    trackingId: string; // Tracking ID if successful
-  };
-}
-```
-
 ## Environment Variables
+
+Create a `.env` file:
 
 ```env
 ZALO_ACCESS_TOKEN=your-access-token
@@ -206,10 +156,20 @@ ZALO_API_URL=https://business.openapi.zalo.me
 ZALO_TIMEOUT=30000
 ```
 
-## License
+## API Reference
 
-MIT
+### ZnsModule Methods
 
-## Support
+- `forRoot(options: ZnsModuleOptions)` - Register module with synchronous options
+- `forRootAsync(options: ZnsAsyncOptions)` - Register module with asynchronous options
+- `forRootGlobal(options: ZnsModuleOptions)` - Register module as global with synchronous options
+- `forRootAsyncGlobal(options: ZnsAsyncOptions)` - Register module as global with asynchronous options
 
-For issues and feature requests, please visit [GitHub Issues](https://github.com/haposoft/zalo-zns-nestjs/issues).
+### ZnsService Methods
+
+- `sendMessage(message: ZnsMessage): Promise<ZnsSendResponse>` - Send a single ZNS notification
+- `sendBulkMessages(messages: ZnsMessage[]): Promise<ZnsSendResponse[]>` - Send multiple ZNS notifications
+
+### Interfaces
+
+See details in README.md
