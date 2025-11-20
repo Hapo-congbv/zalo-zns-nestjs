@@ -44,15 +44,45 @@ export class ZaloAuthService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    // Try to refresh token on module init if token exists
+    // Check token status on module init
     const token = await this.tokenStorage.getToken();
-    if (token && this.isTokenExpired(token)) {
-      this.logger.log('Token expired, attempting to refresh...');
+
+    if (!token) {
+      // No token available - provide helpful instructions
+      this.logger.warn('⚠️  No Zalo access token found. OAuth authorization required.');
+      this.logger.warn('📋 To get access token automatically, please:');
+      this.logger.warn('   1. Call: GET /zalo/oauth/authorize to get authorization URL');
+      this.logger.warn('   2. Visit the returned URL in your browser');
+      this.logger.warn('   3. Authorize the application on Zalo');
+      this.logger.warn('   4. Zalo will redirect to your callback URL');
+      this.logger.warn('   5. Token will be automatically saved');
+      this.logger.warn(`   Redirect URI: ${this.oauthOptionsNonNull.redirectUri}`);
+      return;
+    }
+
+    // Token exists - check if expired or expiring soon
+    if (this.isTokenExpired(token)) {
+      this.logger.log('Token expired, attempting to refresh automatically...');
       try {
         await this.refreshToken();
+        this.logger.log('✅ Token refreshed successfully');
       } catch (error) {
-        this.logger.warn('Failed to refresh token on init', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(`❌ Failed to refresh token on init: ${errorMessage}`);
+        this.logger.warn('⚠️  You may need to re-authorize. Use: GET /zalo/oauth/authorize');
       }
+    } else if (this.isTokenExpiringSoon(token, 5 * 60 * 1000)) {
+      this.logger.log('Token expiring soon, refreshing proactively...');
+      try {
+        await this.refreshToken();
+        this.logger.log('✅ Token refreshed proactively');
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.warn(`Failed to refresh token proactively: ${errorMessage}`);
+      }
+    } else {
+      const expiresIn = Math.floor((token.expiresAt - Date.now()) / 1000 / 60);
+      this.logger.log(`✅ Zalo access token is valid (expires in ${expiresIn} minutes)`);
     }
   }
 
@@ -171,14 +201,30 @@ export class ZaloAuthService implements OnModuleInit {
     const token = await this.tokenStorage.getToken();
 
     if (!token) {
-      throw new Error('No token available. Please complete OAuth authorization first.');
+      const errorMessage =
+        'No Zalo access token available. Please complete OAuth authorization first.\n' +
+        'To get started:\n' +
+        '1. Call: GET /zalo/oauth/authorize\n' +
+        '2. Visit the returned URL and authorize\n' +
+        '3. Complete the OAuth callback\n' +
+        '4. Token will be automatically saved and used';
+      throw new Error(errorMessage);
     }
 
     // Check if token is expired or will expire in the next 5 minutes
     if (this.isTokenExpired(token) || this.isTokenExpiringSoon(token, 5 * 60 * 1000)) {
       this.logger.log('Token expired or expiring soon, refreshing...');
-      const refreshedToken = await this.refreshToken();
-      return refreshedToken.accessToken;
+      try {
+        const refreshedToken = await this.refreshToken();
+        return refreshedToken.accessToken;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(`Failed to refresh token: ${errorMessage}`);
+        throw new Error(
+          `Failed to refresh access token: ${errorMessage}. ` +
+            'You may need to re-authorize. Use: GET /zalo/oauth/authorize',
+        );
+      }
     }
 
     return token.accessToken;
@@ -221,5 +267,67 @@ export class ZaloAuthService implements OnModuleInit {
    */
   private generateRandomState(): string {
     return crypto.randomBytes(32).toString('hex');
+  }
+
+  /**
+   * Check if authorization is needed (no token or token expired and can't refresh)
+   * @returns Object with authorization status and URL if needed
+   */
+  async checkAuthorizationStatus(): Promise<{
+    needsAuthorization: boolean;
+    hasToken: boolean;
+    tokenValid: boolean;
+    authorizationUrl?: string;
+    state?: string;
+    message?: string;
+  }> {
+    const token = await this.tokenStorage.getToken();
+    const hasToken = !!token;
+
+    if (!hasToken) {
+      const authData = this.generateAuthorizationUrl();
+      return {
+        needsAuthorization: true,
+        hasToken: false,
+        tokenValid: false,
+        authorizationUrl: authData.url,
+        state: authData.state,
+        message: 'No token found. Authorization required.',
+      };
+    }
+
+    const tokenValid =
+      !this.isTokenExpired(token!) && !this.isTokenExpiringSoon(token!, 5 * 60 * 1000);
+
+    if (!tokenValid) {
+      // Try to refresh
+      try {
+        await this.refreshToken();
+        return {
+          needsAuthorization: false,
+          hasToken: true,
+          tokenValid: true,
+          message: 'Token refreshed successfully.',
+        };
+      } catch {
+        // Can't refresh, need re-authorization
+        const authData = this.generateAuthorizationUrl();
+        return {
+          needsAuthorization: true,
+          hasToken: true,
+          tokenValid: false,
+          authorizationUrl: authData.url,
+          state: authData.state,
+          message: 'Token expired and refresh failed. Re-authorization required.',
+        };
+      }
+    }
+
+    return {
+      needsAuthorization: false,
+      hasToken: true,
+      tokenValid: true,
+      message: 'Token is valid.',
+    };
   }
 }

@@ -44,8 +44,20 @@ export class ZnsService {
           const accessToken = await this.zaloAuthService.getAccessToken();
           config.headers.access_token = accessToken;
         } catch (error) {
-          this.logger.error('Failed to get access token', error);
-          throw new Error('Failed to get access token. Please complete OAuth authorization.');
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          this.logger.error(`Failed to get access token: ${errorMessage}`);
+
+          // Provide helpful error message
+          const helpfulMessage =
+            'Failed to get Zalo access token. ' +
+            'Please ensure OAuth authorization is completed.\n' +
+            'Steps to fix:\n' +
+            '1. Call GET /zalo/oauth/authorize to get authorization URL\n' +
+            '2. Visit the URL and authorize the application\n' +
+            '3. Complete the OAuth callback\n' +
+            '4. Token will be automatically saved';
+
+          throw new Error(helpfulMessage);
         }
       } else if (options.accessToken) {
         config.headers.access_token = options.accessToken;

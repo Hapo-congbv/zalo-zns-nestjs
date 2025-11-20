@@ -169,18 +169,26 @@ export class ZaloOAuthController {
   async getTokenStatus() {
     this.checkAuthService();
     try {
-      const accessToken = await this.zaloAuthService!.getAccessToken();
+      const status = await this.zaloAuthService!.checkAuthorizationStatus();
+      const accessToken = status.tokenValid ? await this.zaloAuthService!.getAccessToken() : null;
+
       return {
         success: true,
         data: {
-          hasToken: !!accessToken,
+          hasToken: status.hasToken,
+          tokenValid: status.tokenValid,
+          needsAuthorization: status.needsAuthorization,
           tokenPreview: accessToken ? `${accessToken.substring(0, 10)}...` : null,
+          authorizationUrl: status.authorizationUrl,
+          message: status.message,
         },
       };
     } catch (error) {
       return {
         success: false,
         hasToken: false,
+        tokenValid: false,
+        needsAuthorization: true,
         message: error instanceof Error ? error.message : 'No token available',
       };
     }
