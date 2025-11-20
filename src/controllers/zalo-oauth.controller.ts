@@ -10,10 +10,13 @@ import {
   Optional,
   BadRequestException,
   SetMetadata,
+  Inject,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ZaloAuthService } from '../services/zalo-auth.service';
 import { PkceService } from '../services/pkce.service';
+import { OAuthStateStorage } from '../interfaces/zns-oauth.interface';
+import { ZNS_OAUTH_STATE_STORAGE } from '../zns.constants';
 
 // Public decorator to mark endpoints as public (bypass JWT auth)
 const IS_PUBLIC_KEY = 'isPublic';
@@ -23,12 +26,13 @@ const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 @Public() // Mark entire controller as public
 export class ZaloOAuthController {
   private readonly logger = new Logger(ZaloOAuthController.name);
-  private readonly codeVerifierStore: Map<string, string> = new Map();
 
   constructor(
     @Optional()
     private readonly zaloAuthService: ZaloAuthService | null,
     private readonly pkceService: PkceService,
+    @Inject(ZNS_OAUTH_STATE_STORAGE)
+    private readonly stateStorage: OAuthStateStorage,
   ) {
     if (!zaloAuthService) {
       this.logger.warn('ZaloAuthService is not available. OAuth endpoints will not work.');
@@ -51,13 +55,13 @@ export class ZaloOAuthController {
    */
   @Public()
   @Get('authorize')
-  getAuthorizationUrl(@Query('state') state?: string) {
+  async getAuthorizationUrl(@Query('state') state?: string) {
     this.checkAuthService();
     try {
       const authData = this.zaloAuthService!.generateAuthorizationUrl(state);
 
-      // Store code verifier temporarily (in production, use Redis or database)
-      this.codeVerifierStore.set(authData.state, authData.codeVerifier);
+      // Store code verifier in state storage (database-backed or in-memory)
+      await this.stateStorage.storeState(authData.state, authData.codeVerifier);
 
       return {
         success: true,
@@ -97,8 +101,15 @@ export class ZaloOAuthController {
         });
       }
 
-      // Retrieve code verifier
-      const codeVerifier = this.codeVerifierStore.get(state);
+      if (!state) {
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          success: false,
+          message: 'State parameter is required',
+        });
+      }
+
+      // Retrieve code verifier from state storage
+      const codeVerifier = await this.stateStorage.getCodeVerifier(state);
       if (!codeVerifier) {
         return res.status(HttpStatus.BAD_REQUEST).json({
           success: false,
@@ -111,11 +122,11 @@ export class ZaloOAuthController {
       const tokenData = await this.zaloAuthService!.exchangeCodeForToken(code, codeVerifier);
 
       // Clean up stored code verifier
-      this.codeVerifierStore.delete(state);
+      await this.stateStorage.deleteState(state);
 
       return res.status(HttpStatus.OK).json({
         success: true,
-        message: 'Authorization successful',
+        message: 'Authorization successful. Token saved to database.',
         data: {
           accessToken: tokenData.accessToken,
           expiresAt: new Date(tokenData.expiresAt).toISOString(),

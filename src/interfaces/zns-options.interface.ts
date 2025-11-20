@@ -1,4 +1,4 @@
-import { ZaloOAuthOptions, TokenStorage } from './zns-oauth.interface';
+import { ZaloOAuthOptions, TokenStorage, OAuthStateStorage } from './zns-oauth.interface';
 
 /**
  * ZNS Module Options
@@ -13,6 +13,9 @@ export interface ZnsModuleOptions {
 
   // Optional: Custom token storage (defaults to in-memory storage)
   tokenStorage?: TokenStorage;
+
+  // Optional: Custom OAuth state storage (defaults to in-memory storage)
+  oauthStateStorage?: OAuthStateStorage;
 
   // Optional: Enable OAuth controller endpoints
   enableOAuthController?: boolean;

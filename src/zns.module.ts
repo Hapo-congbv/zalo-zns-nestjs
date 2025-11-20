@@ -2,10 +2,16 @@ import { DynamicModule, Module, Provider } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ZnsService } from './zns.service';
 import { ZnsModuleOptions, ZnsAsyncOptions } from './interfaces/zns-options.interface';
-import { ZNS_MODULE_OPTIONS, ZNS_OAUTH_OPTIONS, ZNS_TOKEN_STORAGE } from './zns.constants';
+import {
+  ZNS_MODULE_OPTIONS,
+  ZNS_OAUTH_OPTIONS,
+  ZNS_TOKEN_STORAGE,
+  ZNS_OAUTH_STATE_STORAGE,
+} from './zns.constants';
 import { ZaloAuthService } from './services/zalo-auth.service';
 import { PkceService } from './services/pkce.service';
 import { MemoryTokenStorageService } from './services/memory-token-storage.service';
+import { MemoryOAuthStateStorageService } from './services/memory-oauth-state-storage.service';
 import { TokenStorage } from './interfaces/zns-oauth.interface';
 import { ZaloOAuthController } from './controllers/zalo-oauth.controller';
 
@@ -29,15 +35,27 @@ export class ZnsModule {
       providers.push({
         provide: ZNS_OAUTH_OPTIONS,
         useFactory: async (...args: any[]) => {
-          const result = options.useFactory!(...args);
-          const moduleOptions = result instanceof Promise ? await result : result;
-          const oauthOptions = moduleOptions?.oauthOptions;
-          console.log('ZNS_OAUTH_OPTIONS factory - moduleOptions:', {
-            hasModuleOptions: !!moduleOptions,
-            hasOauthOptions: !!oauthOptions,
-            oauthOptionsType: typeof oauthOptions,
-          });
-          return oauthOptions;
+          try {
+            const result = options.useFactory!(...args);
+            const moduleOptions = result instanceof Promise ? await result : result;
+            const oauthOptions = moduleOptions?.oauthOptions;
+            console.log('ZNS_OAUTH_OPTIONS factory - moduleOptions:', {
+              hasModuleOptions: !!moduleOptions,
+              hasOauthOptions: !!oauthOptions,
+              oauthOptionsType: typeof oauthOptions,
+              oauthOptions: oauthOptions
+                ? {
+                    appId: oauthOptions.appId,
+                    hasSecret: !!oauthOptions.appSecret,
+                    hasRedirectUri: !!oauthOptions.redirectUri,
+                  }
+                : null,
+            });
+            return oauthOptions || null;
+          } catch (error) {
+            console.error('ZNS_OAUTH_OPTIONS factory error:', error);
+            return null;
+          }
         },
         inject: options.inject || [],
       });
@@ -46,6 +64,14 @@ export class ZnsModule {
         useFactory: async (...args: any[]) => {
           const moduleOptions = await options.useFactory!(...args);
           return moduleOptions?.tokenStorage || new MemoryTokenStorageService();
+        },
+        inject: options.inject || [],
+      });
+      providers.push({
+        provide: ZNS_OAUTH_STATE_STORAGE,
+        useFactory: async (...args: any[]) => {
+          const moduleOptions = await options.useFactory!(...args);
+          return moduleOptions?.oauthStateStorage || new MemoryOAuthStateStorageService();
         },
         inject: options.inject || [],
       });
@@ -65,6 +91,10 @@ export class ZnsModule {
         provide: ZNS_TOKEN_STORAGE,
         useValue: syncOptions.tokenStorage || new MemoryTokenStorageService(),
       });
+      providers.push({
+        provide: ZNS_OAUTH_STATE_STORAGE,
+        useValue: syncOptions.oauthStateStorage || new MemoryOAuthStateStorageService(),
+      });
     }
 
     // Always add OAuth services (they'll be conditionally used)
@@ -76,19 +106,33 @@ export class ZnsModule {
         tokenStorage: TokenStorage,
         pkceService: PkceService,
       ) => {
-        // Handle both sync and async oauthOptions
-        const resolvedOauthOptions =
-          oauthOptions instanceof Promise ? await oauthOptions : oauthOptions;
-        console.log('ZaloAuthService factory - oauthOptions:', {
-          isNull: resolvedOauthOptions === null,
-          isUndefined: resolvedOauthOptions === undefined,
-          hasValue: !!resolvedOauthOptions,
-          type: typeof resolvedOauthOptions,
-        });
-        if (!resolvedOauthOptions) {
-          return null; // Return null if OAuth not configured
+        try {
+          // Handle both sync and async oauthOptions
+          const resolvedOauthOptions =
+            oauthOptions instanceof Promise ? await oauthOptions : oauthOptions;
+          console.log('ZaloAuthService factory - oauthOptions:', {
+            isNull: resolvedOauthOptions === null,
+            isUndefined: resolvedOauthOptions === undefined,
+            hasValue: !!resolvedOauthOptions,
+            type: typeof resolvedOauthOptions,
+            oauthOptions: resolvedOauthOptions
+              ? {
+                  appId: resolvedOauthOptions.appId,
+                  hasSecret: !!resolvedOauthOptions.appSecret,
+                  hasRedirectUri: !!resolvedOauthOptions.redirectUri,
+                }
+              : null,
+          });
+          if (!resolvedOauthOptions) {
+            console.log('ZaloAuthService factory - returning null (OAuth not configured)');
+            return null; // Return null if OAuth not configured
+          }
+          console.log('ZaloAuthService factory - creating ZaloAuthService instance');
+          return new ZaloAuthService(resolvedOauthOptions, tokenStorage, pkceService);
+        } catch (error) {
+          console.error('ZaloAuthService factory error:', error);
+          return null;
         }
-        return new ZaloAuthService(resolvedOauthOptions, tokenStorage, pkceService);
       },
       inject: [ZNS_OAUTH_OPTIONS, ZNS_TOKEN_STORAGE, PkceService],
     });

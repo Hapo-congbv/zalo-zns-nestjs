@@ -14,7 +14,7 @@ import { ZNS_OAUTH_OPTIONS, ZNS_TOKEN_STORAGE } from '../zns.constants';
 @Injectable()
 export class ZaloAuthService implements OnModuleInit {
   private readonly logger = new Logger(ZaloAuthService.name);
-  private readonly oauthAxiosInstance: AxiosInstance;
+  private readonly oauthAxiosInstance: AxiosInstance | null = null;
   private tokenRefreshPromise: Promise<ZaloTokenData> | null = null;
 
   constructor(
@@ -24,26 +24,44 @@ export class ZaloAuthService implements OnModuleInit {
     private readonly tokenStorage: TokenStorage,
     private readonly pkceService: PkceService,
   ) {
-    if (!oauthOptions) {
-      throw new Error('OAuth options are required for ZaloAuthService');
+    // Note: oauthOptions can be null if OAuth is not configured
+    // The factory in zns.module.ts will return null in that case
+    // This service should only be instantiated when oauthOptions is provided
+    if (oauthOptions) {
+      this.oauthAxiosInstance = axios.create({
+        baseURL: 'https://oauth.zaloapp.com/v4/oa',
+        timeout: 30000,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    } else {
+      this.logger.warn(
+        'ZaloAuthService created without oauthOptions. This should not happen if OAuth is properly configured.',
+      );
+      // Don't throw here - let the factory handle returning null
+      // This allows the service to be conditionally available
     }
-    this.oauthAxiosInstance = axios.create({
-      baseURL: 'https://oauth.zaloapp.com/v4/oa',
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
   }
 
   private get oauthOptionsNonNull(): ZaloOAuthOptions {
     if (!this.oauthOptions) {
-      throw new Error('OAuth options not configured');
+      throw new Error(
+        'OAuth options not configured. Please provide oauthOptions in module configuration.',
+      );
     }
     return this.oauthOptions;
   }
 
   async onModuleInit() {
+    // Check if oauthOptions is configured
+    if (!this.oauthOptions) {
+      this.logger.warn(
+        'ZaloAuthService initialized without oauthOptions. OAuth features will not be available.',
+      );
+      return;
+    }
+
     // Check token status on module init
     const token = await this.tokenStorage.getToken();
 
@@ -92,12 +110,15 @@ export class ZaloAuthService implements OnModuleInit {
    * @returns Authorization URL and code verifier
    */
   generateAuthorizationUrl(state?: string): AuthorizationUrlResponse {
+    if (!this.oauthOptions) {
+      throw new Error('OAuth options not configured');
+    }
     const pkcePair = this.pkceService.generatePkcePair();
     const generatedState = state || this.generateRandomState();
 
     const params = new URLSearchParams({
-      app_id: this.oauthOptionsNonNull.appId,
-      redirect_uri: this.oauthOptionsNonNull.redirectUri,
+      app_id: this.oauthOptions.appId,
+      redirect_uri: this.oauthOptions.redirectUri,
       code_challenge: pkcePair.codeChallenge,
       code_challenge_method: pkcePair.codeChallengeMethod,
       state: generatedState,
@@ -119,12 +140,15 @@ export class ZaloAuthService implements OnModuleInit {
    * @returns Token data
    */
   async exchangeCodeForToken(code: string, codeVerifier: string): Promise<ZaloTokenData> {
+    if (!this.oauthOptions || !this.oauthAxiosInstance) {
+      throw new Error('OAuth options not configured');
+    }
     try {
       this.logger.log('Exchanging authorization code for token...');
 
       const response = await this.oauthAxiosInstance.post<ZaloTokenResponse>('/access_token', {
-        app_id: this.oauthOptionsNonNull.appId,
-        app_secret: this.oauthOptionsNonNull.appSecret,
+        app_id: this.oauthOptions.appId,
+        app_secret: this.oauthOptions.appSecret,
         code,
         grant_type: 'authorization_code',
         code_verifier: codeVerifier,
@@ -164,6 +188,9 @@ export class ZaloAuthService implements OnModuleInit {
   }
 
   private async performTokenRefresh(refreshToken?: string): Promise<ZaloTokenData> {
+    if (!this.oauthOptions || !this.oauthAxiosInstance) {
+      throw new Error('OAuth options not configured');
+    }
     try {
       const storedToken = await this.tokenStorage.getToken();
       const tokenToUse = refreshToken || storedToken?.refreshToken;
@@ -175,8 +202,8 @@ export class ZaloAuthService implements OnModuleInit {
       this.logger.log('Refreshing access token...');
 
       const response = await this.oauthAxiosInstance.post<ZaloTokenResponse>('/access_token', {
-        app_id: this.oauthOptionsNonNull.appId,
-        app_secret: this.oauthOptionsNonNull.appSecret,
+        app_id: this.oauthOptions.appId,
+        app_secret: this.oauthOptions.appSecret,
         refresh_token: tokenToUse,
         grant_type: 'refresh_token',
       });

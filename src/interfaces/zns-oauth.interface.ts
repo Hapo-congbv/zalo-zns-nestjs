@@ -53,3 +53,12 @@ export interface TokenStorage {
   saveToken(token: ZaloTokenData): Promise<void>;
   clearToken(): Promise<void>;
 }
+
+/**
+ * OAuth state storage interface (for storing code verifier)
+ */
+export interface OAuthStateStorage {
+  storeState(state: string, codeVerifier: string): Promise<void>;
+  getCodeVerifier(state: string): Promise<string | null>;
+  deleteState(state: string): Promise<void>;
+}
