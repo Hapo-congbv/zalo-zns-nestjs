@@ -35,8 +35,6 @@ export class ZaloOAuthController {
   ) {
     this.logger.log('🔍 ZaloOAuthController constructor called');
     this.logger.log(`🔍 ZaloAuthService injected: ${zaloAuthService ? 'YES' : 'NO'}`);
-
-    this.logger.log(`🔍 ZaloAuthService instance: ${JSON.stringify(zaloAuthService)}`);
   }
 
   private checkAuthService() {
