@@ -101,38 +101,30 @@ export class ZnsModule {
     providers.push(PkceService);
     providers.push({
       provide: ZaloAuthService,
-      useFactory: async (
-        oauthOptions: any,
-        tokenStorage: TokenStorage,
-        pkceService: PkceService,
-      ) => {
-        try {
-          // Handle both sync and async oauthOptions
-          const resolvedOauthOptions =
-            oauthOptions instanceof Promise ? await oauthOptions : oauthOptions;
-          console.log('ZaloAuthService factory - oauthOptions:', {
-            isNull: resolvedOauthOptions === null,
-            isUndefined: resolvedOauthOptions === undefined,
-            hasValue: !!resolvedOauthOptions,
-            type: typeof resolvedOauthOptions,
-            oauthOptions: resolvedOauthOptions
-              ? {
-                  appId: resolvedOauthOptions.appId,
-                  hasSecret: !!resolvedOauthOptions.appSecret,
-                  hasRedirectUri: !!resolvedOauthOptions.redirectUri,
-                }
-              : null,
-          });
-          if (!resolvedOauthOptions) {
-            console.log('ZaloAuthService factory - returning null (OAuth not configured)');
-            return null; // Return null if OAuth not configured
-          }
-          console.log('ZaloAuthService factory - creating ZaloAuthService instance');
-          return new ZaloAuthService(resolvedOauthOptions, tokenStorage, pkceService);
-        } catch (error) {
-          console.error('ZaloAuthService factory error:', error);
-          return null;
+      useFactory: (oauthOptions: any, tokenStorage: TokenStorage, pkceService: PkceService) => {
+        console.log('🏭 ZaloAuthService factory called');
+        console.log('🏭 Injected oauthOptions:', {
+          isNull: oauthOptions === null,
+          isUndefined: oauthOptions === undefined,
+          hasValue: !!oauthOptions,
+          type: typeof oauthOptions,
+        });
+
+        if (!oauthOptions) {
+          console.log('❌ ZaloAuthService factory - returning null (OAuth not configured)');
+          return null; // Return null if OAuth not configured
         }
+
+        console.log('✅ ZaloAuthService factory - creating ZaloAuthService instance');
+        console.log('✅ OAuth Options:', {
+          appId: oauthOptions.appId,
+          hasSecret: !!oauthOptions.appSecret,
+          hasRedirectUri: !!oauthOptions.redirectUri,
+        });
+
+        const service = new ZaloAuthService(oauthOptions, tokenStorage, pkceService);
+        console.log('✅ ZaloAuthService instance created successfully');
+        return service;
       },
       inject: [ZNS_OAUTH_OPTIONS, ZNS_TOKEN_STORAGE, PkceService],
     });

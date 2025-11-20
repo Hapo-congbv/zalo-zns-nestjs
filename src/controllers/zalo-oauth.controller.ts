@@ -34,8 +34,16 @@ export class ZaloOAuthController {
     @Inject(ZNS_OAUTH_STATE_STORAGE)
     private readonly stateStorage: OAuthStateStorage,
   ) {
+    this.logger.log('🔍 ZaloOAuthController constructor called');
+    this.logger.log(`🔍 ZaloAuthService injected: ${zaloAuthService ? 'YES' : 'NO'}`);
+    this.logger.log(`🔍 ZaloAuthService type: ${typeof zaloAuthService}`);
     if (!zaloAuthService) {
-      this.logger.warn('ZaloAuthService is not available. OAuth endpoints will not work.');
+      this.logger.warn('⚠️ ZaloAuthService is not available. OAuth endpoints will not work.');
+      this.logger.warn(
+        '💡 This usually means oauthOptions was not provided in module configuration.',
+      );
+    } else {
+      this.logger.log('✅ ZaloAuthService is available and ready to use');
     }
   }
 
