@@ -124,6 +124,11 @@ export class ZnsModule {
 
         const service = new ZaloAuthService(oauthOptions, tokenStorage, pkceService);
         console.log('✅ ZaloAuthService instance created successfully');
+        console.log('✅ Returning service:', {
+          isNull: service === null,
+          type: typeof service,
+          hasGenerateUrl: typeof service?.generateAuthorizationUrl,
+        });
         return service;
       },
       inject: [ZNS_OAUTH_OPTIONS, ZNS_TOKEN_STORAGE, PkceService],
@@ -172,7 +177,7 @@ export class ZnsModule {
       module: ZnsModule,
       controllers: this.getControllers(options),
       providers: this.createProviders(options),
-      exports: [ZnsService],
+      exports: [ZnsService, ZaloAuthService],
       global: false,
     };
   }
@@ -186,7 +191,7 @@ export class ZnsModule {
       imports: this.ensureConfigModule(options.imports),
       controllers: this.getControllers(options),
       providers: this.createProviders(options),
-      exports: [ZnsService],
+      exports: [ZnsService, ZaloAuthService],
       global: false,
     };
   }
@@ -199,7 +204,7 @@ export class ZnsModule {
       module: ZnsModule,
       controllers: this.getControllers(options),
       providers: this.createProviders(options),
-      exports: [ZnsService],
+      exports: [ZnsService, ZaloAuthService],
       global: true,
     };
   }
@@ -213,7 +218,7 @@ export class ZnsModule {
       imports: this.ensureConfigModule(options.imports),
       controllers: this.getControllers(options),
       providers: this.createProviders(options),
-      exports: [ZnsService],
+      exports: [ZnsService, ZaloAuthService],
       global: true,
     };
   }

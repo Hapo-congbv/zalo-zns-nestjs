@@ -7,7 +7,6 @@ import {
   Res,
   HttpStatus,
   Logger,
-  Optional,
   BadRequestException,
   SetMetadata,
   Inject,
@@ -28,26 +27,20 @@ export class ZaloOAuthController {
   private readonly logger = new Logger(ZaloOAuthController.name);
 
   constructor(
-    @Optional()
-    private readonly zaloAuthService: ZaloAuthService | null,
+    @Inject(ZaloAuthService)
+    private readonly zaloAuthService: ZaloAuthService,
     private readonly pkceService: PkceService,
     @Inject(ZNS_OAUTH_STATE_STORAGE)
     private readonly stateStorage: OAuthStateStorage,
   ) {
     this.logger.log('🔍 ZaloOAuthController constructor called');
     this.logger.log(`🔍 ZaloAuthService injected: ${zaloAuthService ? 'YES' : 'NO'}`);
-    this.logger.log(`🔍 ZaloAuthService type: ${typeof zaloAuthService}`);
-    if (!zaloAuthService) {
-      this.logger.warn('⚠️ ZaloAuthService is not available. OAuth endpoints will not work.');
-      this.logger.warn(
-        '💡 This usually means oauthOptions was not provided in module configuration.',
-      );
-    } else {
-      this.logger.log('✅ ZaloAuthService is available and ready to use');
-    }
+
+    this.logger.log(`🔍 ZaloAuthService instance: ${JSON.stringify(zaloAuthService)}`);
   }
 
   private checkAuthService() {
+    // With explicit injection, this should essentially never happen if module bootstrap succeeds
     if (!this.zaloAuthService) {
       throw new BadRequestException(
         'OAuth is not configured. Please provide oauthOptions in module configuration.',
