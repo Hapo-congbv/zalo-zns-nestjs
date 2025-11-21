@@ -223,10 +223,11 @@ export class ZaloAuthService implements OnModuleInit {
       const trimmedAppId = this.oauthOptions.appId.trim();
       const trimmedAppSecret = this.oauthOptions.appSecret.trim();
 
-      // Zalo OAuth API requires application/x-www-form-urlencoded format
+      // Zalo OAuth API requires:
+      // - secret_key in header (not in body)
+      // - application/x-www-form-urlencoded format for body
       const requestBody = new URLSearchParams({
         app_id: trimmedAppId,
-        app_secret: trimmedAppSecret,
         code,
         grant_type: 'authorization_code',
         code_verifier: codeVerifier,
@@ -246,9 +247,9 @@ export class ZaloAuthService implements OnModuleInit {
         grant_type: 'authorization_code',
         code_verifier_length: codeVerifier.length,
         request_format: 'application/x-www-form-urlencoded',
+        secret_key_in_header: true, // secret_key is sent in header, not body
         request_body_preview: {
           app_id: trimmedAppId,
-          app_secret: '***MASKED***',
           code: code.substring(0, 10) + '...',
           grant_type: 'authorization_code',
           code_verifier: codeVerifier.substring(0, 10) + '...',
@@ -258,6 +259,11 @@ export class ZaloAuthService implements OnModuleInit {
       const response = await this.oauthAxiosInstance.post<ZaloTokenResponse>(
         '/access_token',
         requestBody.toString(),
+        {
+          headers: {
+            secret_key: trimmedAppSecret, // secret_key must be in header
+          },
+        },
       );
 
       // Log the response for debugging
@@ -420,10 +426,11 @@ export class ZaloAuthService implements OnModuleInit {
       const trimmedAppId = this.oauthOptions.appId.trim();
       const trimmedAppSecret = this.oauthOptions.appSecret.trim();
 
-      // Zalo OAuth API requires application/x-www-form-urlencoded format
+      // Zalo OAuth API requires:
+      // - secret_key in header (not in body)
+      // - application/x-www-form-urlencoded format for body
       const requestBody = new URLSearchParams({
         app_id: trimmedAppId,
-        app_secret: trimmedAppSecret,
         refresh_token: tokenToUse,
         grant_type: 'refresh_token',
       });
@@ -435,11 +442,14 @@ export class ZaloAuthService implements OnModuleInit {
         app_id_type: typeof trimmedAppId,
         has_app_secret: !!trimmedAppSecret && trimmedAppSecret.length > 0,
         app_secret_length: trimmedAppSecret.length,
+        app_secret_preview: trimmedAppSecret
+          ? `${trimmedAppSecret.substring(0, 3)}...${trimmedAppSecret.substring(trimmedAppSecret.length - 3)}`
+          : 'NOT SET',
         grant_type: 'refresh_token',
         request_format: 'application/x-www-form-urlencoded',
+        secret_key_in_header: true, // secret_key is sent in header, not body
         request_body_preview: {
           app_id: trimmedAppId,
-          app_secret: '***MASKED***',
           refresh_token: tokenToUse.substring(0, 10) + '...',
           grant_type: 'refresh_token',
         },
@@ -448,6 +458,11 @@ export class ZaloAuthService implements OnModuleInit {
       const response = await this.oauthAxiosInstance.post<ZaloTokenResponse>(
         '/access_token',
         requestBody.toString(),
+        {
+          headers: {
+            secret_key: trimmedAppSecret, // secret_key must be in header
+          },
+        },
       );
 
       // Log the response for debugging
