@@ -182,11 +182,6 @@ export class ZaloAuthService implements OnModuleInit {
       code_challenge: pkcePair.codeChallenge,
     });
 
-    // Add state parameter separately to ensure it's properly encoded
-    if (generatedState) {
-      params.append('state', generatedState);
-    }
-
     const url = `https://oauth.zaloapp.com/v4/oa/permission?${params.toString()}`;
 
     return {
