@@ -180,6 +180,7 @@ export class ZaloAuthService implements OnModuleInit {
       oa_id: oaId,
       redirect_uri: redirectUri,
       code_challenge: pkcePair.codeChallenge,
+      state: generatedState, // Add state parameter so Zalo can return it in callback
     });
 
     const url = `https://oauth.zaloapp.com/v4/oa/permission?${params.toString()}`;
@@ -190,6 +191,7 @@ export class ZaloAuthService implements OnModuleInit {
       app_id_length: appId.length,
       oa_id: oaId,
       redirect_uri: redirectUri,
+      state: generatedState,
       url: url,
     });
 
