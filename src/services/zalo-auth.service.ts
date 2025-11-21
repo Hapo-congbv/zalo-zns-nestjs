@@ -120,7 +120,6 @@ export class ZaloAuthService implements OnModuleInit {
       app_id: this.oauthOptions.appId,
       redirect_uri: this.oauthOptions.redirectUri,
       code_challenge: pkcePair.codeChallenge,
-      code_challenge_method: pkcePair.codeChallengeMethod,
       state: generatedState,
     });
 
@@ -154,12 +153,21 @@ export class ZaloAuthService implements OnModuleInit {
         code_verifier: codeVerifier,
       });
 
+      // Log the response for debugging
+      this.logger.debug('Token response from Zalo:', JSON.stringify(response.data));
+
       const tokenData = this.mapTokenResponse(response.data);
       await this.tokenStorage.saveToken(tokenData);
 
       this.logger.log('Successfully exchanged code for token');
       return tokenData;
     } catch (error) {
+      // Enhanced error logging
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as any;
+        this.logger.error('Zalo API error response:', JSON.stringify(axiosError.response?.data));
+        this.logger.error('Zalo API error status:', axiosError.response?.status);
+      }
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to exchange code for token: ${errorMessage}`);
       throw error;
@@ -208,12 +216,21 @@ export class ZaloAuthService implements OnModuleInit {
         grant_type: 'refresh_token',
       });
 
+      // Log the response for debugging
+      this.logger.debug('Token refresh response from Zalo:', JSON.stringify(response.data));
+
       const tokenData = this.mapTokenResponse(response.data);
       await this.tokenStorage.saveToken(tokenData);
 
       this.logger.log('Successfully refreshed access token');
       return tokenData;
     } catch (error) {
+      // Enhanced error logging
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as any;
+        this.logger.error('Zalo API error response:', JSON.stringify(axiosError.response?.data));
+        this.logger.error('Zalo API error status:', axiosError.response?.status);
+      }
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to refresh token: ${errorMessage}`);
       throw error;
@@ -275,11 +292,39 @@ export class ZaloAuthService implements OnModuleInit {
    * Map Zalo token response to internal token data format
    */
   private mapTokenResponse(response: ZaloTokenResponse): ZaloTokenData {
+    // Validate response
+    if (!response.access_token) {
+      throw new Error('Invalid token response: missing access_token');
+    }
+    if (!response.refresh_token) {
+      throw new Error('Invalid token response: missing refresh_token');
+    }
+
+    // Validate and parse expires_in
+    const expiresIn = Number(response.expires_in);
+    if (!Number.isFinite(expiresIn) || expiresIn <= 0) {
+      this.logger.error('Invalid expires_in value:', response.expires_in);
+      throw new Error(
+        `Invalid token response: expires_in is not a valid number (received: ${response.expires_in})`,
+      );
+    }
+
     const now = Date.now();
-    const expiresAt = now + response.expires_in * 1000;
-    const refreshExpiresAt = response.refresh_expires_in
-      ? now + response.refresh_expires_in * 1000
-      : undefined;
+    const expiresAt = now + expiresIn * 1000;
+
+    // Validate and parse refresh_expires_in (optional)
+    let refreshExpiresAt: number | undefined = undefined;
+    if (response.refresh_expires_in !== undefined && response.refresh_expires_in !== null) {
+      const refreshExpiresIn = Number(response.refresh_expires_in);
+      if (Number.isFinite(refreshExpiresIn) && refreshExpiresIn > 0) {
+        refreshExpiresAt = now + refreshExpiresIn * 1000;
+      } else {
+        this.logger.warn(
+          'Invalid refresh_expires_in value, ignoring:',
+          response.refresh_expires_in,
+        );
+      }
+    }
 
     return {
       accessToken: response.access_token,
