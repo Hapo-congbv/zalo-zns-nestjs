@@ -34,7 +34,7 @@ export class ZaloAuthService implements OnModuleInit {
         baseURL: 'https://oauth.zaloapp.com/v4/oa',
         timeout: 30000,
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
       });
     } else {
@@ -223,13 +223,14 @@ export class ZaloAuthService implements OnModuleInit {
       const trimmedAppId = this.oauthOptions.appId.trim();
       const trimmedAppSecret = this.oauthOptions.appSecret.trim();
 
-      const requestBody = {
+      // Zalo OAuth API requires application/x-www-form-urlencoded format
+      const requestBody = new URLSearchParams({
         app_id: trimmedAppId,
         app_secret: trimmedAppSecret,
         code,
         grant_type: 'authorization_code',
         code_verifier: codeVerifier,
-      };
+      });
 
       // Log request details with full app_id for debugging Invalid appId errors
       this.logger.debug('Token exchange request:', {
@@ -241,7 +242,8 @@ export class ZaloAuthService implements OnModuleInit {
         code_length: code.length,
         grant_type: 'authorization_code',
         code_verifier_length: codeVerifier.length,
-        request_body: {
+        request_format: 'application/x-www-form-urlencoded',
+        request_body_preview: {
           app_id: trimmedAppId,
           app_secret: '***MASKED***',
           code: code.substring(0, 10) + '...',
@@ -252,7 +254,7 @@ export class ZaloAuthService implements OnModuleInit {
 
       const response = await this.oauthAxiosInstance.post<ZaloTokenResponse>(
         '/access_token',
-        requestBody,
+        requestBody.toString(),
       );
 
       // Log the response for debugging
@@ -281,7 +283,13 @@ export class ZaloAuthService implements OnModuleInit {
             '2. ZALO_APP_ID value is incorrect\n' +
             '3. ZALO_APP_ID has leading/trailing whitespace (should be trimmed)\n' +
             '4. The appId does not match your Zalo Developer account\n' +
-            `5. Current appId being sent: ${trimmedAppId} (length: ${trimmedAppId.length})`;
+            `5. Current appId being sent: ${trimmedAppId} (length: ${trimmedAppId.length})\n` +
+            '6. ZALO_APP_SECRET may be incorrect or does not match the appId\n' +
+            '7. **IMPORTANT**: The app (AppID) must be authorized in your Zalo Official Account (OA)\n' +
+            '   - Go to Zalo Cloud Admin: https://zalo.cloud/\n' +
+            '   - Navigate to your Official Account settings\n' +
+            '   - Link and authorize your AppID in the OA account\n' +
+            '   - Reference: https://zalo.cloud/zns/guidelines/huong-dan-lien-ket-zalo-oa-vao-tai-khoan-zca-va-uy-quyen-cho-ung-dung-appid';
           this.logger.error(detailedMessage);
           throw new Error(detailedMessage);
         }
@@ -390,12 +398,13 @@ export class ZaloAuthService implements OnModuleInit {
       const trimmedAppId = this.oauthOptions.appId.trim();
       const trimmedAppSecret = this.oauthOptions.appSecret.trim();
 
-      const requestBody = {
+      // Zalo OAuth API requires application/x-www-form-urlencoded format
+      const requestBody = new URLSearchParams({
         app_id: trimmedAppId,
         app_secret: trimmedAppSecret,
         refresh_token: tokenToUse,
         grant_type: 'refresh_token',
-      };
+      });
 
       // Log request details with full app_id for debugging Invalid appId errors
       this.logger.debug('Token refresh request:', {
@@ -405,7 +414,8 @@ export class ZaloAuthService implements OnModuleInit {
         has_app_secret: !!trimmedAppSecret && trimmedAppSecret.length > 0,
         app_secret_length: trimmedAppSecret.length,
         grant_type: 'refresh_token',
-        request_body: {
+        request_format: 'application/x-www-form-urlencoded',
+        request_body_preview: {
           app_id: trimmedAppId,
           app_secret: '***MASKED***',
           refresh_token: tokenToUse.substring(0, 10) + '...',
@@ -415,7 +425,7 @@ export class ZaloAuthService implements OnModuleInit {
 
       const response = await this.oauthAxiosInstance.post<ZaloTokenResponse>(
         '/access_token',
-        requestBody,
+        requestBody.toString(),
       );
 
       // Log the response for debugging
