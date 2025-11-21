@@ -10,12 +10,13 @@ import {
   BadRequestException,
   SetMetadata,
   Inject,
+  Delete,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ZaloAuthService } from '../services/zalo-auth.service';
 import { PkceService } from '../services/pkce.service';
-import { OAuthStateStorage } from '../interfaces/zns-oauth.interface';
-import { ZNS_OAUTH_STATE_STORAGE } from '../zns.constants';
+import { OAuthStateStorage, TokenStorage } from '../interfaces/zns-oauth.interface';
+import { ZNS_OAUTH_STATE_STORAGE, ZNS_TOKEN_STORAGE } from '../zns.constants';
 
 // Public decorator to mark endpoints as public (bypass JWT auth)
 const IS_PUBLIC_KEY = 'isPublic';
@@ -32,6 +33,8 @@ export class ZaloOAuthController {
     private readonly pkceService: PkceService,
     @Inject(ZNS_OAUTH_STATE_STORAGE)
     private readonly stateStorage: OAuthStateStorage,
+    @Inject(ZNS_TOKEN_STORAGE)
+    private readonly tokenStorage: TokenStorage,
   ) {
     this.logger.log('🔍 ZaloOAuthController constructor called');
     this.logger.log(`🔍 ZaloAuthService injected: ${zaloAuthService ? 'YES' : 'NO'}`);
@@ -224,6 +227,30 @@ export class ZaloOAuthController {
       };
     } catch (error) {
       this.logger.error('Failed to generate PKCE pair', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Clear/revoke stored token
+   * DELETE /zalo/oauth/token
+   * @returns Success status
+   */
+  @Public()
+  @Delete('token')
+  async clearToken() {
+    try {
+      await this.tokenStorage.clearToken();
+      this.logger.log('Successfully cleared Zalo OAuth token');
+      return {
+        success: true,
+        message: 'Token cleared successfully. You need to re-authorize to get a new token.',
+      };
+    } catch (error) {
+      this.logger.error('Failed to clear token', error);
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Unknown error',

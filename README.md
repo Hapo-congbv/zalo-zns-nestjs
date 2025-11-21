@@ -244,8 +244,9 @@ When `enableOAuthController` is true, the following endpoints are available:
 
 - `GET /zalo/oauth/authorize` - Get authorization URL
 - `GET /zalo/oauth/callback` - Handle OAuth callback
-- `GET /zalo/oauth/status` - Check authorization status
+- `GET /zalo/oauth/token-status` - Check authorization status
 - `POST /zalo/oauth/refresh` - Manually refresh token
+- `DELETE /zalo/oauth/token` - Clear/revoke stored token (useful when changing app configuration)
 
 ### OAuth Flow
 
