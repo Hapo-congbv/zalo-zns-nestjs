@@ -27,6 +27,9 @@ export class ZaloAuthService implements OnModuleInit {
     // The factory in zns.module.ts will return null in that case
     // This service should only be instantiated when oauthOptions is provided
     if (oauthOptions) {
+      // Validate and normalize OAuth options
+      this.validateAndNormalizeOAuthOptions(oauthOptions);
+
       this.oauthAxiosInstance = axios.create({
         baseURL: 'https://oauth.zaloapp.com/v4/oa',
         timeout: 30000,
@@ -39,6 +42,49 @@ export class ZaloAuthService implements OnModuleInit {
         'ZaloAuthService created without oauthOptions. This should not happen if OAuth is properly configured.',
       );
     }
+  }
+
+  /**
+   * Validate and normalize OAuth options
+   * Ensures appId, appSecret, oaId, and redirectUri are properly formatted
+   */
+  private validateAndNormalizeOAuthOptions(options: ZaloOAuthOptions): void {
+    // Trim whitespace from all string fields
+    if (options.appId) {
+      options.appId = options.appId.trim();
+    }
+    if (options.appSecret) {
+      options.appSecret = options.appSecret.trim();
+    }
+    if (options.oaId) {
+      options.oaId = options.oaId.trim();
+    }
+    if (options.redirectUri) {
+      options.redirectUri = options.redirectUri.trim();
+    }
+
+    // Validate required fields
+    if (!options.appId || options.appId.length === 0) {
+      throw new Error('Zalo OAuth appId is required and cannot be empty');
+    }
+    if (!options.appSecret || options.appSecret.length === 0) {
+      throw new Error('Zalo OAuth appSecret is required and cannot be empty');
+    }
+    if (!options.oaId || options.oaId.length === 0) {
+      throw new Error('Zalo OAuth oaId is required and cannot be empty');
+    }
+    if (!options.redirectUri || options.redirectUri.length === 0) {
+      throw new Error('Zalo OAuth redirectUri is required and cannot be empty');
+    }
+
+    // Log configuration (masked for security)
+    this.logger.debug('Zalo OAuth configuration validated:', {
+      appId: `${options.appId.substring(0, 4)}...${options.appId.substring(options.appId.length - 4)}`,
+      appIdLength: options.appId.length,
+      hasAppSecret: !!options.appSecret,
+      oaId: `${options.oaId.substring(0, 4)}...${options.oaId.substring(options.oaId.length - 4)}`,
+      redirectUri: options.redirectUri,
+    });
   }
 
   private get oauthOptionsNonNull(): ZaloOAuthOptions {
@@ -113,10 +159,26 @@ export class ZaloAuthService implements OnModuleInit {
     const pkcePair = this.pkceService.generatePkcePair();
     const generatedState = state || this.generateRandomState();
 
+    // Ensure all values are trimmed before building URL
+    const appId = this.oauthOptions.appId.trim();
+    const oaId = this.oauthOptions.oaId.trim();
+    const redirectUri = this.oauthOptions.redirectUri.trim();
+
+    // Validate required fields
+    if (!appId || appId.length === 0) {
+      throw new Error('Invalid appId: appId is empty or undefined');
+    }
+    if (!oaId || oaId.length === 0) {
+      throw new Error('Invalid oaId: oaId is empty or undefined');
+    }
+    if (!redirectUri || redirectUri.length === 0) {
+      throw new Error('Invalid redirectUri: redirectUri is empty or undefined');
+    }
+
     const params = new URLSearchParams({
-      app_id: this.oauthOptions.appId,
-      oa_id: this.oauthOptions.oaId,
-      redirect_uri: this.oauthOptions.redirectUri,
+      app_id: appId,
+      oa_id: oaId,
+      redirect_uri: redirectUri,
       code_challenge: pkcePair.codeChallenge,
     });
 
@@ -147,13 +209,32 @@ export class ZaloAuthService implements OnModuleInit {
     try {
       this.logger.log('Exchanging authorization code for token...');
 
-      const response = await this.oauthAxiosInstance.post<ZaloTokenResponse>('/access_token', {
-        app_id: this.oauthOptions.appId,
-        app_secret: this.oauthOptions.appSecret,
+      // Validate appId before making request
+      if (!this.oauthOptions.appId || this.oauthOptions.appId.trim().length === 0) {
+        throw new Error('Invalid appId: appId is empty or undefined');
+      }
+
+      const requestBody = {
+        app_id: this.oauthOptions.appId.trim(),
+        app_secret: this.oauthOptions.appSecret.trim(),
         code,
         grant_type: 'authorization_code',
         code_verifier: codeVerifier,
+      };
+
+      // Log request details (masked for security)
+      this.logger.debug('Token exchange request:', {
+        app_id: `${this.oauthOptions.appId.substring(0, 4)}...${this.oauthOptions.appId.substring(this.oauthOptions.appId.length - 4)}`,
+        app_id_length: this.oauthOptions.appId.length,
+        has_app_secret: !!this.oauthOptions.appSecret,
+        code_length: code.length,
+        grant_type: 'authorization_code',
       });
+
+      const response = await this.oauthAxiosInstance.post<ZaloTokenResponse>(
+        '/access_token',
+        requestBody,
+      );
 
       // Log the response for debugging
       this.logger.debug('Token response from Zalo:', JSON.stringify(response.data));
@@ -164,12 +245,51 @@ export class ZaloAuthService implements OnModuleInit {
       this.logger.log('Successfully exchanged code for token');
       return tokenData;
     } catch (error) {
-      // Enhanced error logging
+      // Enhanced error logging and handling
       if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error as any;
-        this.logger.error('Zalo API error response:', JSON.stringify(axiosError.response?.data));
+        const errorData = axiosError.response?.data;
+        this.logger.error('Zalo API error response:', JSON.stringify(errorData));
         this.logger.error('Zalo API error status:', axiosError.response?.status);
+
+        // Extract Zalo-specific error information
+        if (errorData && typeof errorData === 'object') {
+          const zaloError = errorData as any;
+          if (zaloError.error_name || zaloError.error_description) {
+            let detailedMessage = `Zalo API Error: ${zaloError.error_name || 'Unknown error'}`;
+            if (zaloError.error_description) {
+              detailedMessage += ` - ${zaloError.error_description}`;
+            }
+            if (zaloError.error) {
+              detailedMessage += ` (Error code: ${zaloError.error})`;
+            }
+            if (zaloError.ref_doc) {
+              detailedMessage += `\nReference: ${zaloError.ref_doc}`;
+            }
+
+            // Special handling for Invalid appId error
+            if (zaloError.error === -14002 || zaloError.error_name === 'Invalid appId') {
+              detailedMessage +=
+                '\n\nPossible causes:\n' +
+                '1. ZALO_APP_ID environment variable is not set or is empty\n' +
+                '2. ZALO_APP_ID value is incorrect\n' +
+                '3. ZALO_APP_ID has leading/trailing whitespace (should be trimmed)\n' +
+                '4. The appId does not match your Zalo Developer account';
+              this.logger.error(detailedMessage);
+              throw new Error(detailedMessage);
+            }
+
+            this.logger.error(detailedMessage);
+            throw new Error(detailedMessage);
+          }
+        }
       }
+
+      // If it's already a mapped error, re-throw it
+      if (error instanceof Error && error.message.includes('Invalid token response')) {
+        throw error;
+      }
+
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to exchange code for token: ${errorMessage}`);
       throw error;
@@ -211,12 +331,30 @@ export class ZaloAuthService implements OnModuleInit {
 
       this.logger.log('Refreshing access token...');
 
-      const response = await this.oauthAxiosInstance.post<ZaloTokenResponse>('/access_token', {
-        app_id: this.oauthOptions.appId,
-        app_secret: this.oauthOptions.appSecret,
+      // Validate appId before making request
+      if (!this.oauthOptions.appId || this.oauthOptions.appId.trim().length === 0) {
+        throw new Error('Invalid appId: appId is empty or undefined');
+      }
+
+      const requestBody = {
+        app_id: this.oauthOptions.appId.trim(),
+        app_secret: this.oauthOptions.appSecret.trim(),
         refresh_token: tokenToUse,
         grant_type: 'refresh_token',
+      };
+
+      // Log request details (masked for security)
+      this.logger.debug('Token refresh request:', {
+        app_id: `${this.oauthOptions.appId.substring(0, 4)}...${this.oauthOptions.appId.substring(this.oauthOptions.appId.length - 4)}`,
+        app_id_length: this.oauthOptions.appId.length,
+        has_app_secret: !!this.oauthOptions.appSecret,
+        grant_type: 'refresh_token',
       });
+
+      const response = await this.oauthAxiosInstance.post<ZaloTokenResponse>(
+        '/access_token',
+        requestBody,
+      );
 
       // Log the response for debugging
       this.logger.debug('Token refresh response from Zalo:', JSON.stringify(response.data));
@@ -227,12 +365,51 @@ export class ZaloAuthService implements OnModuleInit {
       this.logger.log('Successfully refreshed access token');
       return tokenData;
     } catch (error) {
-      // Enhanced error logging
+      // Enhanced error logging and handling
       if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error as any;
-        this.logger.error('Zalo API error response:', JSON.stringify(axiosError.response?.data));
+        const errorData = axiosError.response?.data;
+        this.logger.error('Zalo API error response:', JSON.stringify(errorData));
         this.logger.error('Zalo API error status:', axiosError.response?.status);
+
+        // Extract Zalo-specific error information
+        if (errorData && typeof errorData === 'object') {
+          const zaloError = errorData as any;
+          if (zaloError.error_name || zaloError.error_description) {
+            let detailedMessage = `Zalo API Error: ${zaloError.error_name || 'Unknown error'}`;
+            if (zaloError.error_description) {
+              detailedMessage += ` - ${zaloError.error_description}`;
+            }
+            if (zaloError.error) {
+              detailedMessage += ` (Error code: ${zaloError.error})`;
+            }
+            if (zaloError.ref_doc) {
+              detailedMessage += `\nReference: ${zaloError.ref_doc}`;
+            }
+
+            // Special handling for Invalid appId error
+            if (zaloError.error === -14002 || zaloError.error_name === 'Invalid appId') {
+              detailedMessage +=
+                '\n\nPossible causes:\n' +
+                '1. ZALO_APP_ID environment variable is not set or is empty\n' +
+                '2. ZALO_APP_ID value is incorrect\n' +
+                '3. ZALO_APP_ID has leading/trailing whitespace (should be trimmed)\n' +
+                '4. The appId does not match your Zalo Developer account';
+              this.logger.error(detailedMessage);
+              throw new Error(detailedMessage);
+            }
+
+            this.logger.error(detailedMessage);
+            throw new Error(detailedMessage);
+          }
+        }
       }
+
+      // If it's already a mapped error, re-throw it
+      if (error instanceof Error && error.message.includes('Invalid token response')) {
+        throw error;
+      }
+
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to refresh token: ${errorMessage}`);
       throw error;
