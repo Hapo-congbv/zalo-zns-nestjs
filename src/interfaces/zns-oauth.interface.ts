@@ -4,6 +4,7 @@
 export interface ZaloOAuthOptions {
   appId: string;
   appSecret: string;
+  oaId: string; // Official Account ID required for authorization
   redirectUri: string;
 }
 

@@ -24,7 +24,6 @@ export class ZaloAuthService implements OnModuleInit {
     private readonly tokenStorage: TokenStorage,
     private readonly pkceService: PkceService,
   ) {
-    // Note: oauthOptions can be null if OAuth is not configured
     // The factory in zns.module.ts will return null in that case
     // This service should only be instantiated when oauthOptions is provided
     if (oauthOptions) {
@@ -39,8 +38,6 @@ export class ZaloAuthService implements OnModuleInit {
       this.logger.warn(
         'ZaloAuthService created without oauthOptions. This should not happen if OAuth is properly configured.',
       );
-      // Don't throw here - let the factory handle returning null
-      // This allows the service to be conditionally available
     }
   }
 
@@ -118,10 +115,15 @@ export class ZaloAuthService implements OnModuleInit {
 
     const params = new URLSearchParams({
       app_id: this.oauthOptions.appId,
+      oa_id: this.oauthOptions.oaId,
       redirect_uri: this.oauthOptions.redirectUri,
       code_challenge: pkcePair.codeChallenge,
-      state: generatedState,
     });
+
+    // Add state parameter separately to ensure it's properly encoded
+    if (generatedState) {
+      params.append('state', generatedState);
+    }
 
     const url = `https://oauth.zaloapp.com/v4/oa/permission?${params.toString()}`;
 

@@ -198,7 +198,78 @@ interface ZnsSendResponse {
 }
 ```
 
+## OAuth Configuration (Recommended)
+
+For automatic token management, use OAuth configuration instead of static access tokens:
+
+```typescript
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ZnsModule } from '@haposoft/zalo-zns-nestjs';
+import { PrismaTokenStorageService } from './config/zalo-token-storage.service';
+import { ZaloOAuthStateService } from './config/zalo-oauth-state.service';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot(),
+    ZnsModule.forRootAsyncGlobal({
+      imports: [ConfigModule],
+      useFactory: (
+        configService: ConfigService,
+        tokenStorage: PrismaTokenStorageService,
+        oauthStateStorage: ZaloOAuthStateService,
+      ) => ({
+        oauthOptions: {
+          appId: configService.get<string>('ZALO_APP_ID'),
+          appSecret: configService.get<string>('ZALO_APP_SECRET'),
+          oaId: configService.get<string>('ZALO_OA_ID'), // Official Account ID
+          redirectUri: configService.get<string>('ZALO_REDIRECT_URI'),
+        },
+        tokenStorage,
+        oauthStateStorage,
+        enableOAuthController: true, // Enables /zalo/oauth/* endpoints
+        apiUrl: 'https://business.openapi.zalo.me',
+        timeout: 30000,
+      }),
+      inject: [ConfigService, PrismaTokenStorageService, ZaloOAuthStateService],
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### OAuth Endpoints
+
+When `enableOAuthController` is true, the following endpoints are available:
+
+- `GET /zalo/oauth/authorize` - Get authorization URL
+- `GET /zalo/oauth/callback` - Handle OAuth callback
+- `GET /zalo/oauth/status` - Check authorization status
+- `POST /zalo/oauth/refresh` - Manually refresh token
+
+### OAuth Flow
+
+1. Call `GET /zalo/oauth/authorize` to get the authorization URL
+2. Redirect user to the authorization URL
+3. User authorizes the application on Zalo
+4. Zalo redirects to your callback URL with authorization code
+5. The callback endpoint automatically exchanges the code for tokens
+6. Tokens are stored and automatically refreshed when needed
+
 ## Environment Variables
+
+### OAuth Mode (Recommended)
+
+```env
+ZALO_APP_ID=your-app-id
+ZALO_APP_SECRET=your-app-secret
+ZALO_OA_ID=your-official-account-id
+ZALO_REDIRECT_URI=https://your-domain.com/zalo/oauth/callback
+ZALO_API_URL=https://business.openapi.zalo.me
+ZALO_TIMEOUT=30000
+```
+
+### Legacy Mode (Static Token)
 
 ```env
 ZALO_ACCESS_TOKEN=your-access-token
