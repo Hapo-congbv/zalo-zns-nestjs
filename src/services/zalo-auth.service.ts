@@ -239,6 +239,9 @@ export class ZaloAuthService implements OnModuleInit {
         app_id_type: typeof trimmedAppId,
         has_app_secret: !!trimmedAppSecret && trimmedAppSecret.length > 0,
         app_secret_length: trimmedAppSecret.length,
+        app_secret_preview: trimmedAppSecret
+          ? `${trimmedAppSecret.substring(0, 3)}...${trimmedAppSecret.substring(trimmedAppSecret.length - 3)}`
+          : 'NOT SET',
         code_length: code.length,
         grant_type: 'authorization_code',
         code_verifier_length: codeVerifier.length,
@@ -290,6 +293,25 @@ export class ZaloAuthService implements OnModuleInit {
             '   - Navigate to your Official Account settings\n' +
             '   - Link and authorize your AppID in the OA account\n' +
             '   - Reference: https://zalo.cloud/zns/guidelines/huong-dan-lien-ket-zalo-oa-vao-tai-khoan-zca-va-uy-quyen-cho-ung-dung-appid';
+          this.logger.error(detailedMessage);
+          throw new Error(detailedMessage);
+        }
+
+        // Special handling for Invalid secret key error
+        if (zaloError.error === -14004 || zaloError.error_name === 'Invalid secret key') {
+          detailedMessage +=
+            '\n\nPossible causes:\n' +
+            '1. ZALO_APP_SECRET environment variable is not set or is empty\n' +
+            '2. ZALO_APP_SECRET value is incorrect\n' +
+            '3. ZALO_APP_SECRET has leading/trailing whitespace (should be trimmed)\n' +
+            '4. The app_secret does not match the app_id\n' +
+            `5. Current app_secret length: ${trimmedAppSecret.length}\n` +
+            `6. Current app_secret preview: ${trimmedAppSecret.substring(0, 3)}...${trimmedAppSecret.substring(trimmedAppSecret.length - 3)}\n` +
+            '7. **IMPORTANT**: Verify the app_secret in Zalo Developer Console matches exactly:\n' +
+            '   - Go to: https://developers.zalo.me/app/2872615031388428482/settings\n' +
+            '   - Copy the "Khóa bí mật của ứng dụng" (Application Secret Key)\n' +
+            '   - Ensure there are no extra spaces or hidden characters\n' +
+            '   - Update ZALO_APP_SECRET in your .env file and restart the application';
           this.logger.error(detailedMessage);
           throw new Error(detailedMessage);
         }
@@ -456,6 +478,25 @@ export class ZaloAuthService implements OnModuleInit {
             '4. The appId does not match your Zalo Developer account\n' +
             `5. Current appId being sent: ${trimmedAppId} (length: ${trimmedAppId.length})\n` +
             '6. The refresh token may have been created with a different appId';
+          this.logger.error(detailedMessage);
+          throw new Error(detailedMessage);
+        }
+
+        // Special handling for Invalid secret key error
+        if (zaloError.error === -14004 || zaloError.error_name === 'Invalid secret key') {
+          detailedMessage +=
+            '\n\nPossible causes:\n' +
+            '1. ZALO_APP_SECRET environment variable is not set or is empty\n' +
+            '2. ZALO_APP_SECRET value is incorrect\n' +
+            '3. ZALO_APP_SECRET has leading/trailing whitespace (should be trimmed)\n' +
+            '4. The app_secret does not match the app_id\n' +
+            `5. Current app_secret length: ${trimmedAppSecret.length}\n` +
+            `6. Current app_secret preview: ${trimmedAppSecret.substring(0, 3)}...${trimmedAppSecret.substring(trimmedAppSecret.length - 3)}\n` +
+            '7. **IMPORTANT**: Verify the app_secret in Zalo Developer Console matches exactly:\n' +
+            '   - Go to: https://developers.zalo.me/app/2872615031388428482/settings\n' +
+            '   - Copy the "Khóa bí mật của ứng dụng" (Application Secret Key)\n' +
+            '   - Ensure there are no extra spaces or hidden characters\n' +
+            '   - Update ZALO_APP_SECRET in your .env file and restart the application';
           this.logger.error(detailedMessage);
           throw new Error(detailedMessage);
         }
