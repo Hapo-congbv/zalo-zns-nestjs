@@ -192,8 +192,7 @@ ZnsModule.forRootAsyncGlobal({
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { ZnsService } from '@hapo-congbv/zalo-zns-nestjs';
-import { ZnsMessage } from '@hapo-congbv/zalo-zns-nestjs';
+import { ZnsMessage, ZnsService } from '@hapo-congbv/zalo-zns-nestjs';
 
 @Injectable()
 export class NotificationService {
