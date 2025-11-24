@@ -24,7 +24,7 @@ VERSION=$(node -p "require('./package.json').version")
 echo "Current version: $VERSION"
 
 # Check if version already exists on npm
-if npm view "@haposoft/zalo-zns-nestjs@$VERSION" version &> /dev/null; then
+if npm view "@hapo-congbv/zalo-zns-nestjs@$VERSION" version &> /dev/null; then
   echo "❌ Error: Version $VERSION already exists on npm"
   echo "Please bump version first using: npm run version:patch|minor|major"
   exit 1
@@ -63,6 +63,6 @@ else
   npm publish --access public
   echo "✅ Published successfully!"
   echo ""
-  echo "Package available at: https://www.npmjs.com/package/@haposoft/zalo-zns-nestjs"
+  echo "Package available at: https://www.npmjs.com/package/@hapo-congbv/zalo-zns-nestjs"
 fi
 

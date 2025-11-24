@@ -1,5 +1,26 @@
+import { ZaloOAuthOptions, TokenStorage, OAuthStateStorage } from './zns-oauth.interface';
+
+/**
+ * ZNS Module Options
+ * Either provide accessToken directly OR oauthOptions for automatic token management
+ */
 export interface ZnsModuleOptions {
-  accessToken: string;
+  // Option 1: Direct access token (legacy mode)
+  accessToken?: string;
+
+  // Option 2: OAuth configuration (recommended)
+  oauthOptions?: ZaloOAuthOptions;
+
+  // Optional: Custom token storage (defaults to in-memory storage)
+  tokenStorage?: TokenStorage;
+
+  // Optional: Custom OAuth state storage (defaults to in-memory storage)
+  oauthStateStorage?: OAuthStateStorage;
+
+  // Optional: Enable OAuth controller endpoints
+  enableOAuthController?: boolean;
+
+  // Common options
   apiUrl?: string;
   timeout?: number;
 }

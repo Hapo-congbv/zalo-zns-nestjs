@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 import { ZnsMessage, ZnsSendResponse } from './interfaces/zns-message.interface';
 import {
@@ -8,24 +8,61 @@ import {
   API_ENDPOINT,
 } from './zns.constants';
 import { ZnsModuleOptions } from './interfaces/zns-options.interface';
+import { ZaloAuthService } from './services/zalo-auth.service';
 
 @Injectable()
 export class ZnsService {
   private readonly logger = new Logger(ZnsService.name);
   private readonly axiosInstance: AxiosInstance;
+  private readonly useOAuth: boolean;
 
   constructor(
     @Inject(ZNS_MODULE_OPTIONS)
     private readonly options: ZnsModuleOptions,
+    @Optional()
+    private readonly zaloAuthService?: ZaloAuthService,
   ) {
     const apiUrl = options.apiUrl || DEFAULT_API_URL;
+    this.useOAuth = !!options.oauthOptions && !options.accessToken;
+
+    if (!this.useOAuth && !options.accessToken) {
+      throw new Error('Either accessToken or oauthOptions must be provided');
+    }
+
     this.axiosInstance = axios.create({
       baseURL: apiUrl,
       timeout: options.timeout || DEFAULT_TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
-        access_token: options.accessToken,
       },
+    });
+
+    // Add request interceptor to inject access token dynamically
+    this.axiosInstance.interceptors.request.use(async (config) => {
+      if (this.useOAuth && this.zaloAuthService) {
+        try {
+          const accessToken = await this.zaloAuthService.getAccessToken();
+          config.headers.access_token = accessToken;
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          this.logger.error(`Failed to get access token: ${errorMessage}`);
+
+          // Provide helpful error message
+          const helpfulMessage =
+            'Failed to get Zalo access token. ' +
+            'Please ensure OAuth authorization is completed.\n' +
+            'Steps to fix:\n' +
+            '1. Call GET /zalo/oauth/authorize to get authorization URL\n' +
+            '2. Visit the URL and authorize the application\n' +
+            '3. Complete the OAuth callback\n' +
+            '4. Token will be automatically saved';
+
+          throw new Error(helpfulMessage);
+        }
+      } else if (options.accessToken) {
+        config.headers.access_token = options.accessToken;
+      }
+      return config;
     });
   }
 
