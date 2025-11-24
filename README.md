@@ -343,7 +343,27 @@ The package automatically refreshes tokens when they expire, so you don't need t
 
 ### Legacy Mode (Static Access Token)
 
-If you prefer to use a static access token instead of OAuth, you can still configure it directly:
+If you already have a Zalo access token and prefer to use it directly without OAuth flow, you can configure it as follows:
+
+#### Synchronous Configuration
+
+```typescript
+import { Module } from '@nestjs/common';
+import { ZnsModule } from '@hapo-congbv/zalo-zns-nestjs';
+
+@Module({
+  imports: [
+    ZnsModule.forRootGlobal({
+      accessToken: 'your-zalo-access-token',
+      apiUrl: 'https://business.openapi.zalo.me', // Optional
+      timeout: 30000, // Optional, default 30000ms
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+#### Asynchronous Configuration (Recommended for Legacy Mode)
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -367,7 +387,22 @@ import { ZnsModule } from '@hapo-congbv/zalo-zns-nestjs';
 export class AppModule {}
 ```
 
-**Note:** Using static access tokens requires manual token management. Tokens expire after 25 hours and need to be refreshed manually. OAuth mode is recommended for production use.
+#### How to Get Access Token
+
+1. Go to [Zalo Developer Console](https://developers.zalo.me/)
+2. Navigate to your app settings
+3. Generate or copy your access token
+4. Add it to your `.env` file as `ZALO_ACCESS_TOKEN`
+
+**Important Notes:**
+
+- ⚠️ **Token Expiration**: Static access tokens expire after **25 hours** and require manual refresh
+- ⚠️ **Manual Management**: You must manually obtain a new token from Zalo Developer Console when the token expires
+- ✅ **OAuth Recommended**: OAuth mode is **strongly recommended** for production use as it handles token refresh automatically
+- 💡 **Use Cases**: Static token mode is suitable for:
+  - Development and testing
+  - Quick prototyping
+  - When you have a specific reason not to use OAuth
 
 ## Environment Variables
 
@@ -393,6 +428,32 @@ ZALO_TIMEOUT=30000
 
 - `ZALO_API_URL` - API base URL (default: `https://business.openapi.zalo.me`)
 - `ZALO_TIMEOUT` - Request timeout in milliseconds (default: `30000`)
+
+### Legacy Mode (Static Token)
+
+If you already have a Zalo access token and prefer to use it directly without OAuth flow:
+
+```env
+ZALO_ACCESS_TOKEN=your-access-token
+ZALO_API_URL=https://business.openapi.zalo.me
+ZALO_TIMEOUT=30000
+```
+
+**Required for Legacy Mode:**
+
+- `ZALO_ACCESS_TOKEN` - Your Zalo access token (obtained from Zalo Developer Console)
+
+**Optional:**
+
+- `ZALO_API_URL` - API base URL (default: `https://business.openapi.zalo.me`)
+- `ZALO_TIMEOUT` - Request timeout in milliseconds (default: `30000`)
+
+**Important Notes:**
+
+- Static access tokens expire after **25 hours** and require manual refresh
+- You need to manually obtain a new token from Zalo Developer Console when the token expires
+- OAuth mode is **strongly recommended** for production use as it handles token refresh automatically
+- Use static token mode only for development, testing, or when you have a specific reason not to use OAuth
 
 ## License
 
