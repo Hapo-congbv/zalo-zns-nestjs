@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### [1.0.4](https://github.com/hapo-congbv/zalo-zns-nestjs/compare/v1.0.3...v1.0.4) (2025-11-24)
+
+### Bug Fixes
+
+- update json and readme ([f0b7378](https://github.com/hapo-congbv/zalo-zns-nestjs/commit/f0b737875f2df975d780334da69add4f6c98e97d))
+- update json and readme ([08c0bb2](https://github.com/hapo-congbv/zalo-zns-nestjs/commit/08c0bb264e7d5ae5b9070807272e604c1aadbcad))
+- update json and readme ([0a3a289](https://github.com/hapo-congbv/zalo-zns-nestjs/commit/0a3a28918464b4414dbe3a694dfb6ddde9268873))
+- update json and readme ([2515063](https://github.com/hapo-congbv/zalo-zns-nestjs/commit/2515063cb879ab9546e64621f99a8144c4d1789a))
+
 ### 1.0.3 (2025-11-24)
 
 ### Features
