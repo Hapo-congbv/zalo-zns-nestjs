@@ -9,7 +9,7 @@ Package này hỗ trợ tự động lấy và refresh `access_token` thông qua
 ```typescript
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ZnsModule } from '@haposoft/zalo-zns-nestjs';
+import { ZnsModule } from '@hapo-congbv/zalo-zns-nestjs';
 
 @Module({
   imports: [
@@ -100,7 +100,7 @@ Sau khi hoàn thành OAuth flow, `ZnsService` sẽ tự động sử dụng `acc
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { ZnsService, ZnsMessage } from '@haposoft/zalo-zns-nestjs';
+import { ZnsService, ZnsMessage } from '@hapo-congbv/zalo-zns-nestjs';
 
 @Injectable()
 export class NotificationService {
@@ -156,7 +156,7 @@ Mặc định, package sử dụng in-memory storage. Token sẽ mất khi resta
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { TokenStorage, ZaloTokenData } from '@haposoft/zalo-zns-nestjs';
+import { TokenStorage, ZaloTokenData } from '@hapo-congbv/zalo-zns-nestjs';
 import Redis from 'ioredis';
 
 @Injectable()

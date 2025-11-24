@@ -1,11 +1,11 @@
-# Usage Guide for @haposoft/zalo-zns-nestjs
+# Usage Guide for @hapo-congbv/zalo-zns-nestjs
 
 ## Installation
 
 ### Method 1: Install from npm (after publishing)
 
 ```bash
-npm install @haposoft/zalo-zns-nestjs
+npm install @hapo-congbv/zalo-zns-nestjs
 ```
 
 ### Method 2: Use npm link (development)
@@ -15,7 +15,7 @@ npm install @haposoft/zalo-zns-nestjs
 npm link
 
 # In the project where you want to use it
-npm link @haposoft/zalo-zns-nestjs
+npm link @hapo-congbv/zalo-zns-nestjs
 ```
 
 ### Method 3: Use from local path
@@ -25,7 +25,7 @@ In your project's `package.json`:
 ```json
 {
   "dependencies": {
-    "@haposoft/zalo-zns-nestjs": "file:../zalo-zns-nestjs"
+    "@hapo-congbv/zalo-zns-nestjs": "file:../zalo-zns-nestjs"
   }
 }
 ```
@@ -38,7 +38,7 @@ In your project's `package.json`:
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { ZnsModule } from '@haposoft/zalo-zns-nestjs';
+import { ZnsModule } from '@hapo-congbv/zalo-zns-nestjs';
 
 @Module({
   imports: [
@@ -57,7 +57,7 @@ export class AppModule {}
 ```typescript
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ZnsModule } from '@haposoft/zalo-zns-nestjs';
+import { ZnsModule } from '@hapo-congbv/zalo-zns-nestjs';
 
 @Module({
   imports: [
@@ -100,7 +100,7 @@ ZnsModule.forRootAsyncGlobal({
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { ZnsService, ZnsMessage } from '@haposoft/zalo-zns-nestjs';
+import { ZnsService, ZnsMessage } from '@hapo-congbv/zalo-zns-nestjs';
 
 @Injectable()
 export class NotificationService {
