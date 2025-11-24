@@ -233,29 +233,6 @@ export class ZaloAuthService implements OnModuleInit {
         code_verifier: codeVerifier,
       });
 
-      // Log request details with full app_id for debugging Invalid appId errors
-      this.logger.debug('Token exchange request:', {
-        app_id: trimmedAppId, // Log full app_id to debug Invalid appId errors
-        app_id_length: trimmedAppId.length,
-        app_id_type: typeof trimmedAppId,
-        has_app_secret: !!trimmedAppSecret && trimmedAppSecret.length > 0,
-        app_secret_length: trimmedAppSecret.length,
-        app_secret_preview: trimmedAppSecret
-          ? `${trimmedAppSecret.substring(0, 3)}...${trimmedAppSecret.substring(trimmedAppSecret.length - 3)}`
-          : 'NOT SET',
-        code_length: code.length,
-        grant_type: 'authorization_code',
-        code_verifier_length: codeVerifier.length,
-        request_format: 'application/x-www-form-urlencoded',
-        secret_key_in_header: true, // secret_key is sent in header, not body
-        request_body_preview: {
-          app_id: trimmedAppId,
-          code: code.substring(0, 10) + '...',
-          grant_type: 'authorization_code',
-          code_verifier: codeVerifier.substring(0, 10) + '...',
-        },
-      });
-
       const response = await this.oauthAxiosInstance.post<ZaloTokenResponse>(
         '/access_token',
         requestBody.toString(),
